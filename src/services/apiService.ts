@@ -28,6 +28,17 @@ export class ApiService {
   // Search for food images using Pexels API
   async searchFoodImage(query: string): Promise<string | null> {
     try {
+      // Clean and optimize the search query
+      const cleanQuery = query
+        .replace(/[^\w\s]/g, '') // Remove special characters
+        .trim()
+        .toLowerCase();
+      
+      if (!cleanQuery) {
+        console.warn('Empty query after cleaning:', query);
+        return null;
+      }
+      
       const response = await fetch(`${API_CONFIG.pexels.endpoint}?query=${encodeURIComponent(query + ' food')}&per_page=1&orientation=landscape`, {
         headers: {
           'Authorization': API_CONFIG.pexels.apiKey,
@@ -35,7 +46,12 @@ export class ApiService {
       });
 
       if (!response.ok) {
-        console.warn(`Pexels API error for "${query}": ${response.statusText}`);
+        if (response.status === 429) {
+          console.warn(`Pexels API rate limit reached for "${query}"`);
+          // Return null instead of throwing to continue processing other items
+          return null;
+        }
+        console.warn(`Pexels API error for "${query}": ${response.status} ${response.statusText}`);
         return null;
       }
 
@@ -44,6 +60,7 @@ export class ApiService {
         return data.photos[0].src.medium;
       }
 
+      console.log(`No images found for "${query}"`);
       return null;
     } catch (error) {
       console.error(`Error fetching image for "${query}":`, error);

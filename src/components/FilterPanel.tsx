@@ -210,22 +210,22 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
           Meat Type Filters
         </h3>
         <p className="text-sm text-gray-600 mb-3">Filter dishes by protein type</p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-4 gap-2">
           {meatTypes.map(({ key, label, color }) => {
             const isActive = settings.activeMeatFilters?.includes(key) || false;
             return (
               <button
                 key={key}
                 onClick={() => handleMeatFilterChange(key, !isActive)}
-                className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all ${
+                className={`flex flex-col items-center justify-center p-2 rounded-lg border-2 transition-all ${
                   isActive 
                     ? 'border-orange-500 bg-orange-50 shadow-md' 
                     : 'border-gray-200 hover:border-orange-300 hover:bg-orange-50/30'
                 }`}
+                title={label}
               >
-                <span className="text-sm font-medium text-gray-700">{label}</span>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${color}`}>
-                  {key}
+                <span className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center ${color}`}>
+                  {key.charAt(0).toUpperCase()}
                 </span>
               </button>
             );

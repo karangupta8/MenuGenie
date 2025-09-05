@@ -7,7 +7,6 @@ import { getOcrConfig } from '../config/ocrConfig';
 const defaultSettings: UserSettings = {
   targetLanguage: 'en',
   nativeCurrency: 'USD',
-  nativeCurrency: 'USD',
   showOriginalText: true,
   showAllergenHighlights: true,
   showNutritionInfo: true,

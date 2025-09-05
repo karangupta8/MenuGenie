@@ -22,20 +22,14 @@ const getApiKey = (keyName: string, fallbackKey?: string): string => {
 export const API_CONFIG = {
   // Google Cloud Vision API
   googleVision: {
-    apiKey: getApiKey('GOOGLE_VISION_API_KEY', 'YOUR_API_KEY_HERE'),
+    apiKey: getApiKey('GOOGLE_VISION_API_KEY', 'AIzaSyBrxlRLYaQTImxvm6H6vAmPLciEEqH-ma0'),
     endpoint: 'https://vision.googleapis.com/v1/images:annotate',
-  },
-  
-  // Google Translate API (kept for fallback)
-  googleTranslate: {
-    apiKey: getApiKey('GOOGLE_TRANSLATE_API_KEY'),
-    endpoint: 'https://translation.googleapis.com/language/translate/v2',
   },
   
   // LLM Provider (OpenAI GPT-4 by default, but configurable)
   llm: {
     provider: 'openai', // 'openai', 'anthropic', 'google', 'azure'
-    apiKey: getApiKey('OPENAI_API_KEY', 'YOUR_API_KEY_HERE'),
+    apiKey: getApiKey('OPENAI_API_KEY', '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'),
     endpoint: 'https://api.openai.com/v1/chat/completions',
     model: 'gpt-4o', // gpt-4o, gpt-4-turbo, claude-3-sonnet, gemini-pro
     maxTokens: 8000,
@@ -44,7 +38,7 @@ export const API_CONFIG = {
   
   // Pexels API
   pexels: {
-    apiKey: getApiKey('PEXELS_API_KEY', 'YOUR_API_KEY_HERE'),
+    apiKey: getApiKey('PEXELS_API_KEY', 'GGDmdqNYlv4LPt18aebXqTBPb5iGzEhXmgkCe6YAhQb84pnYrQ2IgrlN'),
     endpoint: 'https://api.pexels.com/v1/search',
   },
   
@@ -64,7 +58,6 @@ export const setTempApiKey = (keyName: string, value: string): void => {
 // Function to get current API key values
 export const getCurrentApiKeys = () => ({
   googleVision: API_CONFIG.googleVision.apiKey,
-  googleTranslate: API_CONFIG.googleTranslate.apiKey,
   openai: API_CONFIG.llm.apiKey,
   pexels: API_CONFIG.pexels.apiKey,
 });
@@ -168,7 +161,7 @@ export const validateApiKeys = (): { isValid: boolean; missingKeys: string[] } =
   
   return {
     isValid: missingKeys.length === 0,
-    missingKeys,
+    missingKeys
   };
 };
 

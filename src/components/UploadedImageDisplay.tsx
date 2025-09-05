@@ -32,7 +32,7 @@ export const UploadedImageDisplay: React.FC<UploadedImageDisplayProps> = ({
         <img
           src={imageUrl}
           alt="Uploaded menu"
-          className="w-full h-64 object-contain bg-gradient-to-br from-gray-50 to-orange-50/30 rounded-lg border border-gray-200 shadow-inner"
+          className="w-full max-h-screen object-contain bg-gradient-to-br from-gray-50 to-orange-50/30 rounded-lg border border-gray-200 shadow-inner"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent rounded-lg pointer-events-none" />
       </div>

@@ -1,15 +1,18 @@
 import { OcrService } from './ocr/ocrService';
 import { LlmService } from './llmService';
+import { ApiService } from './apiService';
 import { MenuItem, ProcessedMenu, ProcessingStatus, MeatType } from '../types/menu';
 import { OcrProvider, OcrProgress } from '../types/ocr';
 
 export class MenuService {
   private ocrService: OcrService;
   private llmService: LlmService;
+  private apiService: ApiService;
 
   constructor() {
     this.ocrService = OcrService.getInstance();
     this.llmService = new LlmService();
+    this.apiService = ApiService.getInstance();
   }
 
   async processMenu(
@@ -68,7 +71,7 @@ export class MenuService {
         message: 'Finding food images...',
       });
 
-      const itemsWithImages = await this.generateImagesForItems(filteredItems);
+      const itemsWithImages = await this.generateImagesForItems(filteredItems, setProcessingStatus);
 
       // Step 6: Re-integrate processed items back into sections
       const updatedSections = processedMenu.sections.map(section => ({
@@ -79,6 +82,12 @@ export class MenuService {
         }).filter(item => filteredItems.some(filtered => filtered.id === item.id))
       })).filter(section => section.items.length > 0);
 
+      // Final completion
+      setProcessingStatus({
+        stage: 'complete',
+        progress: 100,
+        message: 'Menu processing complete!',
+      });
       return {
         ...processedMenu,
         sections: updatedSections,
@@ -87,6 +96,11 @@ export class MenuService {
       };
     } catch (error) {
       console.error('Error processing menu:', error);
+      setProcessingStatus({
+        stage: 'error',
+        progress: 0,
+        message: `Processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
       throw new Error(`Failed to process menu: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -121,25 +135,57 @@ export class MenuService {
     });
   }
 
-  private async generateImagesForItems(items: MenuItem[]): Promise<MenuItem[]> {
-    const itemsWithImages = await Promise.all(
-      items.map(async (item) => {
-        try {
-          const imageUrl = await this.apiService.searchFoodImage(item.name) || '';
-          return {
-            ...item,
-            imageUrl
-          };
-        } catch (error) {
-          console.warn(`Failed to find image for ${item.name}:`, error);
-          return {
-            ...item,
-            imageUrl: ''
-          };
-        }
-      })
-    );
-
+  private async generateImagesForItems(
+    items: MenuItem[], 
+    setProcessingStatus?: (status: ProcessingStatus) => void
+  ): Promise<MenuItem[]> {
+    const itemsWithImages: MenuItem[] = [];
+    
+    // Process items in batches to avoid rate limiting
+    const batchSize = 3;
+    for (let i = 0; i < items.length; i += batchSize) {
+      const batch = items.slice(i, i + batchSize);
+      
+      // Update progress before processing batch
+      const currentProgress = 80 + Math.round((i / items.length) * 15);
+      setProcessingStatus?.({
+        stage: 'generating-images',
+        progress: currentProgress,
+        message: `Finding food images... (${i + 1}/${items.length})`,
+      });
+      
+      const batchResults = await Promise.all(
+        batch.map(async (item) => {
+          try {
+            // Add delay to avoid rate limiting
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            const imageUrl = await this.apiService.searchFoodImage(item.name);
+            console.log(`Image search for "${item.name}":`, imageUrl ? 'Found' : 'Not found');
+            return {
+              ...item,
+              imageUrl: imageUrl || ''
+            };
+          } catch (error) {
+            console.warn(`Failed to find image for ${item.name}:`, error);
+            return {
+              ...item,
+              imageUrl: ''
+            };
+          }
+        })
+      );
+      
+      itemsWithImages.push(...batchResults);
+    }
+    
+    // Final image generation progress
+    setProcessingStatus?.({
+      stage: 'generating-images',
+      progress: 95,
+      message: `Found images for ${itemsWithImages.filter(item => item.imageUrl).length}/${items.length} items`,
+    });
+    
     return itemsWithImages;
   }
 

@@ -25,7 +25,6 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ onKeysUpdated }) =
 
   const saveKeys = () => {
     // Save to session storage for temporary use
-    setTempApiKey('google_translate_api_key', keys.googleTranslate);
     setTempApiKey('openai_api_key', keys.openai);
     setTempApiKey('pexels_api_key', keys.pexels);
     
