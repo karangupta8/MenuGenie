@@ -137,7 +137,19 @@ export const getCurrentLlmKeys = () => {
  */
 export const isKeyFromEnv = (keyName: string): boolean => {
   const envKey = import.meta.env[`VITE_${keyName}`];
-  return !!(envKey && envKey !== 'YOUR_API_KEY_HERE');
+  // Check for various placeholder patterns
+  const placeholderPatterns = [
+    'YOUR_API_KEY_HERE',
+    'YOUR_OPENAI_API_KEY_HERE',
+    'YOUR_GOOGLE_LLM_API_KEY_HERE',
+    'YOUR_GROQ_API_KEY_HERE',
+    'YOUR_ANTHROPIC_API_KEY_HERE',
+    'YOUR_GOOGLE_VISION_API_KEY_HERE',
+    'YOUR_OCR_SPACE_API_KEY_HERE',
+    'YOUR_PEXELS_API_KEY_HERE'
+  ];
+  
+  return !!(envKey && !placeholderPatterns.includes(envKey));
 };
 
 /**

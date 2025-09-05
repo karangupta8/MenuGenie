@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MenuItem } from '../types/menu';
 import { DietaryLabels } from './DietaryLabels';
 import { IngredientTranslations } from './IngredientTranslations';
@@ -19,13 +19,18 @@ export const MenuCard: React.FC<MenuCardProps> = ({
   showOriginalText,
   showAllergenHighlights,
   showNutritionInfo,
-  imageSize,
+  imageSize = 'medium',
   nativeCurrency
 }) => {
   const [showOriginal, setShowOriginal] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [showFullCard, setShowFullCard] = useState(false);
+
+  // Reset image error when imageUrl changes
+  useEffect(() => {
+    setImageError(false);
+  }, [item.imageUrl]);
 
   const getImageSizeClass = () => {
     switch (imageSize) {
@@ -92,18 +97,26 @@ export const MenuCard: React.FC<MenuCardProps> = ({
     <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 hover-lift animate-scale-in">
       {/* Image Section */}
       <div className={`relative ${getImageSizeClass()} overflow-hidden`}>
-        {!imageError ? (
+        {item.imageUrl && !imageError ? (
           <img
             src={item.imageUrl}
             alt={item.name}
             className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-            onError={() => setImageError(true)}
+            onError={() => {
+              console.warn(`Failed to load image for "${item.name}": ${item.imageUrl}`);
+              setImageError(true);
+            }}
+            onLoad={() => {
+              console.log(`Successfully loaded image for "${item.name}"`);
+            }}
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
             <div className="text-center text-gray-500">
               <div className="text-4xl mb-2 animate-pulse-gentle">🍽️</div>
-              <div className="text-sm">Image not available</div>
+              <div className="text-sm">
+                {!item.imageUrl ? 'No image available' : 'Image failed to load'}
+              </div>
             </div>
           </div>
         )}

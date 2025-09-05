@@ -1,6 +1,7 @@
 import { OcrService } from './ocr/ocrService';
 import { LlmService } from './llmService';
 import { ApiService } from './apiService';
+import { validateApiKeys } from '../config/api';
 import { MenuItem, ProcessedMenu, ProcessingStatus, MeatType } from '../types/menu';
 import { OcrProvider, OcrProgress } from '../types/ocr';
 
@@ -11,7 +12,7 @@ export class MenuService {
 
   constructor() {
     this.ocrService = OcrService.getInstance();
-    this.llmService = new LlmService();
+    this.llmService = LlmService.getInstance();
     this.apiService = ApiService.getInstance();
   }
 
@@ -154,6 +155,20 @@ export class MenuService {
   ): Promise<MenuItem[]> {
     const itemsWithImages: MenuItem[] = [];
     
+    // Check if Pexels API key is configured
+    const validation = validateApiKeys();
+    if (!validation.isValid && validation.missingKeys.includes('Pexels API Key')) {
+      console.warn('Pexels API key not configured. Skipping image generation.');
+      setProcessingStatus?.({
+        stage: 'generating-images',
+        progress: 100,
+        message: 'Skipping image generation - Pexels API key not configured',
+      });
+      
+      // Return items with empty image URLs
+      return items.map(item => ({ ...item, imageUrl: '' }));
+    }
+    
     // Process items in batches to avoid rate limiting
     const batchSize = 3;
     for (let i = 0; i < items.length; i += batchSize) {
@@ -191,13 +206,6 @@ export class MenuService {
       
       itemsWithImages.push(...batchResults);
     }
-    
-    // Final image generation progress
-    setProcessingStatus?.({
-      stage: 'generating-images',
-      progress: 95,
-      message: `Found images for ${itemsWithImages.filter(item => item.imageUrl).length}/${items.length} items`,
-    });
     
     return itemsWithImages;
   }

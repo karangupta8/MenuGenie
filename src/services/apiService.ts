@@ -28,6 +28,12 @@ export class ApiService {
   // Search for food images using Pexels API
   async searchFoodImage(query: string): Promise<string | null> {
     try {
+      // Check if API key is configured
+      if (!API_CONFIG.pexels.apiKey || API_CONFIG.pexels.apiKey === 'YOUR_API_KEY_HERE' || API_CONFIG.pexels.apiKey === '') {
+        console.warn('Pexels API key not configured. Images will not be loaded.');
+        return null;
+      }
+
       // Clean and optimize the search query
       const cleanQuery = query
         .replace(/[^\w\s]/g, '') // Remove special characters
@@ -39,6 +45,8 @@ export class ApiService {
         return null;
       }
       
+      console.log(`Searching for image: "${cleanQuery}"`);
+      
       const response = await fetch(`${API_CONFIG.pexels.endpoint}?query=${encodeURIComponent(query + ' food')}&per_page=1&orientation=landscape`, {
         headers: {
           'Authorization': API_CONFIG.pexels.apiKey,
@@ -46,9 +54,12 @@ export class ApiService {
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          console.error('Pexels API key is invalid or unauthorized');
+          return null;
+        }
         if (response.status === 429) {
           console.warn(`Pexels API rate limit reached for "${query}"`);
-          // Return null instead of throwing to continue processing other items
           return null;
         }
         console.warn(`Pexels API error for "${query}": ${response.status} ${response.statusText}`);
@@ -57,7 +68,9 @@ export class ApiService {
 
       const data: PexelsResponse = await response.json();
       if (data.photos && data.photos.length > 0) {
-        return data.photos[0].src.medium;
+        const imageUrl = data.photos[0].src.medium;
+        console.log(`Found image for "${query}": ${imageUrl}`);
+        return imageUrl;
       }
 
       console.log(`No images found for "${query}"`);

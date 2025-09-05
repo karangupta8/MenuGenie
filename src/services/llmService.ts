@@ -25,6 +25,8 @@ interface LLMResponse {
       confidence: number;
       proteins: string[];
       meatProteins: string[];
+      meatTypes: string[];
+      cookingMethods: string[];
       allergens: string[];
       herbsSpices: string[];
       dietaryInfo: {

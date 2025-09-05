@@ -24,8 +24,23 @@ export const UnifiedApiManager: React.FC<UnifiedApiManagerProps> = ({
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [saved, setSaved] = useState(false);
   const [expanded, setExpanded] = useState(defaultExpanded);
-  const [selectedLlmProvider, setSelectedLlmProvider] = useState<LlmProvider>('openai');
-  const [selectedOcrProvider, setSelectedOcrProvider] = useState<OcrProvider>('tesseract');
+  
+  // Initialize selected providers from session storage or defaults
+  const [selectedLlmProvider, setSelectedLlmProvider] = useState<LlmProvider>(() => {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      const stored = sessionStorage.getItem('llm_default_provider');
+      return (stored as LlmProvider) || 'openai';
+    }
+    return 'openai';
+  });
+  
+  const [selectedOcrProvider, setSelectedOcrProvider] = useState<OcrProvider>(() => {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      const stored = sessionStorage.getItem('ocr_default_provider');
+      return (stored as OcrProvider) || 'tesseract';
+    }
+    return 'tesseract';
+  });
 
   // Check if we should auto-expand
   useEffect(() => {
