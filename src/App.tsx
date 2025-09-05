@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { validateApiKeys } from './config/api';
 import { validateOcrConfig } from './config/ocrConfig';
+import { validateLlmConfig } from './config/llmConfig';
 import { MenuUpload } from './components/MenuUpload';
 import { OcrProgressDisplay } from './components/OcrProgressDisplay';
 import { MenuGrid } from './components/MenuGrid';
-import { ApiKeyManager } from './components/ApiKeyManager';
+import { UnifiedApiManager } from './components/UnifiedApiManager';
 import { UploadedImageDisplay } from './components/UploadedImageDisplay';
 import { FilterPanel } from './components/FilterPanel';
 import { HeroSection } from './components/HeroSection';
@@ -37,9 +38,11 @@ function App() {
   React.useEffect(() => {
     const apiValidation = validateApiKeys();
     const ocrValidation = validateOcrConfig();
+    const llmValidation = validateLlmConfig();
     
-    // Show warning if no API keys are configured (OCR has Tesseract fallback)
-    setShowApiWarning(!apiValidation.isValid);
+    // Show warning if no API keys are configured
+    // OCR has Tesseract fallback, but LLM needs at least one provider
+    setShowApiWarning(!apiValidation.isValid || !llmValidation.isValid);
   }, []);
 
   const allMenuItems = menu?.sections.flatMap(section => section.items) || [];
@@ -63,6 +66,15 @@ function App() {
             </div>
 
             <div className="flex items-center space-x-4">
+              {/* API Configuration Button */}
+              <button
+                onClick={() => setShowApiManager(!showApiManager)}
+                className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-all duration-200"
+              >
+                <AlertCircle className="w-4 h-4" />
+                <span>API Config</span>
+              </button>
+
               {/* OCR Progress Display */}
               {ocrProgress && ocrProgress.stage !== 'complete' && (
                 <div className="mr-4">
@@ -146,10 +158,16 @@ function App() {
       )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* API Key Manager */}
-        {showApiWarning && showApiManager && (
+        {/* Unified API Manager */}
+        {showApiManager && (
           <div className="mb-6 animate-scale-in">
-            <ApiKeyManager onKeysUpdated={() => setShowApiWarning(false)} />
+            <UnifiedApiManager 
+              onKeysUpdated={() => {
+                setShowApiWarning(false);
+                setShowApiManager(false);
+              }} 
+              defaultExpanded={showApiWarning}
+            />
           </div>
         )}
 
@@ -161,8 +179,6 @@ function App() {
               <FilterPanel 
                 settings={settings} 
                 onSettingsChange={setSettings}
-                selectedOcrProvider={selectedOcrProvider}
-                onOcrProviderChange={setSelectedOcrProvider}
               />
             </div>
           </div>

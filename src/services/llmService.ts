@@ -1,5 +1,8 @@
 import { ProcessedMenu, MenuItem, MenuSection } from '../types/menu';
-import { API_CONFIG, LLM_PROMPTS } from '../config/api';
+import { LlmProvider, LlmProgress } from '../types/llm';
+import { LlmProviderFactory } from './llm/llmProviderFactory';
+import { getLlmConfig, validateLlmConfig } from '../config/llmConfig';
+import { LLM_PROMPTS } from '../config/api';
 
 interface LLMResponse {
   originalLanguage: string;
@@ -54,13 +57,18 @@ export class LlmService {
     return LlmService.instance;
   }
 
-  async processMenuData(menuText: string, targetLanguage: string = 'en'): Promise<ProcessedMenu> {
+  async processMenuData(
+    menuText: string, 
+    targetLanguage: string = 'en',
+    onProgress?: (progress: LlmProgress) => void,
+    preferredProvider?: LlmProvider
+  ): Promise<ProcessedMenu> {
     const startTime = Date.now();
     
     try {
       const prompt = LLM_PROMPTS.menuProcessing(menuText, targetLanguage);
       
-      const response = await this.callLLM(prompt);
+      const response = await this.callLLM(prompt, onProgress, preferredProvider);
       const parsedData = this.parseResponse(response);
       
       // Convert LLM response to our internal format
@@ -92,94 +100,79 @@ export class LlmService {
     }
   }
 
-  private async callLLM(prompt: string): Promise<string> {
-    const { provider, apiKey, endpoint, model, maxTokens, temperature } = API_CONFIG.llm;
+  private async callLLM(
+    prompt: string, 
+    onProgress?: (progress: LlmProgress) => void,
+    preferredProvider?: LlmProvider
+  ): Promise<string> {
+    const validation = validateLlmConfig();
     
-    if (!apiKey || apiKey === 'YOUR_OPENAI_API_KEY_HERE') {
-      throw new Error('LLM API key not configured');
+    if (!validation.isValid) {
+      throw new Error('No LLM providers are configured');
     }
 
-    let requestBody: any;
-    let headers: Record<string, string>;
-
-    // Configure request based on provider
-    switch (provider) {
-      case 'openai':
-        headers = {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        };
-        requestBody = {
-          model: model,
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an expert menu analyst and translator. Always return valid JSON responses.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          max_tokens: maxTokens,
-          temperature: temperature,
-        };
-        break;
-        
-      case 'anthropic':
-        headers = {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-        };
-        requestBody = {
-          model: model,
-          max_tokens: maxTokens,
-          temperature: temperature,
-          messages: [
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-        };
-        break;
-        
-      default:
-        throw new Error(`Unsupported LLM provider: ${provider}`);
-    }
-
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(requestBody),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(`LLM API error: ${errorData.error?.message || response.statusText}`);
-    }
-
-    const data = await response.json();
+    // Determine provider order
+    const providers = this.getProviderOrder(preferredProvider, validation.availableProviders);
     
-    // Extract content based on provider
-    let content: string;
-    switch (provider) {
-      case 'openai':
-        content = data.choices?.[0]?.message?.content || '';
-        break;
-      case 'anthropic':
-        content = data.content?.[0]?.text || '';
-        break;
-      default:
-        throw new Error(`Unsupported LLM provider for response parsing: ${provider}`);
+    let lastError: Error | null = null;
+
+    // Try each provider in order
+    for (let i = 0; i < providers.length; i++) {
+      const providerType = providers[i];
+      
+      try {
+        onProgress?.({
+          stage: 'initializing',
+          progress: 10,
+          message: `Trying ${providerType} provider...`,
+          provider: providerType,
+        });
+
+        const provider = LlmProviderFactory.getProvider(providerType);
+        
+        if (!provider.isConfigured()) {
+          throw new Error(`${providerType} provider is not configured`);
+        }
+
+        const result = await provider.processPrompt(prompt, onProgress);
+        
+        if (!result.content) {
+          throw new Error('Empty response from LLM');
+        }
+
+        return result.content;
+        
+      } catch (error) {
+        console.warn(`${providerType} provider failed:`, error);
+        lastError = error instanceof Error ? error : new Error(String(error));
+        
+        // If this is the last provider, throw the error
+        if (i === providers.length - 1) {
+          throw lastError;
+        }
+        
+        // Otherwise, try the next provider
+        onProgress?.({
+          stage: 'error',
+          progress: 0,
+          message: `${providerType} failed, trying next provider...`,
+          provider: providerType,
+        });
+      }
     }
 
-    if (!content) {
-      throw new Error('Empty response from LLM');
-    }
+    throw lastError || new Error('All LLM providers failed');
+  }
 
-    return content;
+  private getProviderOrder(preferredProvider?: LlmProvider, availableProviders?: LlmProvider[]): LlmProvider[] {
+    const config = getLlmConfig();
+    const available = availableProviders || config.fallbackProviders;
+    
+    if (preferredProvider && available.includes(preferredProvider)) {
+      return [preferredProvider, ...available.filter(p => p !== preferredProvider)];
+    }
+    
+    return available;
   }
 
   private parseResponse(response: string): LLMResponse {

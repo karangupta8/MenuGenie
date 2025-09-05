@@ -13,10 +13,16 @@ const getConfigValue = (envKey: string, sessionKey: string, fallback: string): s
     return envValue;
   }
   
-  // 2. Session storage (runtime changes)
-  const sessionValue = sessionStorage.getItem(sessionKey);
-  if (sessionValue && sessionValue !== 'YOUR_API_KEY_HERE') {
-    return sessionValue;
+  // 2. Session storage (runtime changes) - only if available
+  if (typeof window !== 'undefined' && window.sessionStorage) {
+    try {
+      const sessionValue = sessionStorage.getItem(sessionKey);
+      if (sessionValue && sessionValue !== 'YOUR_API_KEY_HERE') {
+        return sessionValue;
+      }
+    } catch (error) {
+      console.warn('Could not access sessionStorage:', error);
+    }
   }
   
   // 3. Hardcoded fallback (lowest priority)
@@ -62,29 +68,54 @@ export const getOcrConfig = (): OcrConfig & {
  * Set temporary OCR configuration in session storage
  */
 export const setTempOcrConfig = (provider: OcrProvider, apiKey?: string): void => {
-  sessionStorage.setItem('ocr_default_provider', provider);
-  
-  if (apiKey) {
-    switch (provider) {
-      case 'google-vision':
-        sessionStorage.setItem('temp_google_vision_api_key', apiKey);
-        break;
-      case 'ocr-space':
-        sessionStorage.setItem('temp_ocr_space_api_key', apiKey);
-        break;
+  if (typeof window === 'undefined' || !window.sessionStorage) {
+    console.warn('SessionStorage not available');
+    return;
+  }
+
+  try {
+    sessionStorage.setItem('ocr_default_provider', provider);
+    
+    if (apiKey) {
+      switch (provider) {
+        case 'google-vision':
+          sessionStorage.setItem('temp_google_vision_api_key', apiKey);
+          break;
+        case 'ocr-space':
+          sessionStorage.setItem('temp_ocr_space_api_key', apiKey);
+          break;
+      }
     }
+  } catch (error) {
+    console.warn('Could not save to sessionStorage:', error);
   }
 };
 
 /**
- * Get current OCR API keys for display
+ * Get current OCR API keys for display (only session keys, not .env keys)
  */
 export const getCurrentOcrKeys = () => {
-  const config = getOcrConfig();
-  return {
-    googleVision: config.providers.googleVision.apiKey,
-    ocrSpace: config.providers.ocrSpace.apiKey,
-  };
+  const keys: Record<string, string> = {};
+  
+  // Only get keys from session storage, not from .env
+  if (typeof window !== 'undefined' && window.sessionStorage) {
+    try {
+      keys.googleVision = sessionStorage.getItem('temp_google_vision_api_key') || '';
+      keys.ocrSpace = sessionStorage.getItem('temp_ocr_space_api_key') || '';
+    } catch (error) {
+      console.warn('Could not access sessionStorage:', error);
+    }
+  }
+  
+  return keys;
+};
+
+/**
+ * Check if a key is configured via .env
+ */
+export const isKeyFromEnv = (keyName: string): boolean => {
+  const envKey = import.meta.env[`VITE_${keyName}`];
+  return !!(envKey && envKey !== 'YOUR_API_KEY_HERE');
 };
 
 /**

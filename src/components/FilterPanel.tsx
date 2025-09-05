@@ -1,22 +1,16 @@
 import React from 'react';
-import { Filter, Eye, DollarSign, Languages, Shield, Zap, Utensils, Settings } from 'lucide-react';
+import { Filter, Eye, DollarSign, Languages, Shield, Zap, Utensils } from 'lucide-react';
 import { UserSettings, MeatType, CookingMethod } from '../types/menu';
-import { OcrProvider } from '../types/ocr';
 import { SUPPORTED_LANGUAGES, SUPPORTED_CURRENCIES } from '../config/api';
-import { OcrProviderSelector } from './OcrProviderSelector';
 
 interface FilterPanelProps {
   settings: UserSettings;
   onSettingsChange: (settings: UserSettings) => void;
-  selectedOcrProvider: OcrProvider;
-  onOcrProviderChange: (provider: OcrProvider) => void;
 }
 
 export const FilterPanel: React.FC<FilterPanelProps> = ({ 
   settings, 
-  onSettingsChange,
-  selectedOcrProvider,
-  onOcrProviderChange
+  onSettingsChange
 }) => {
   const handleSettingChange = (key: keyof UserSettings, value: any) => {
     onSettingsChange({
@@ -83,12 +77,6 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* OCR Provider Selection */}
-      <OcrProviderSelector
-        selectedProvider={selectedOcrProvider}
-        onProviderChange={onOcrProviderChange}
-      />
-
       {/* Language Settings */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover-lift">
         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">

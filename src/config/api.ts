@@ -9,10 +9,16 @@ const getApiKey = (keyName: string, fallbackKey?: string): string => {
     return envKey;
   }
   
-  // Then try session storage (for temporary testing)
-  const sessionKey = sessionStorage.getItem(`temp_${keyName.toLowerCase()}`);
-  if (sessionKey && sessionKey !== 'YOUR_API_KEY_HERE') {
-    return sessionKey;
+  // Then try session storage (for temporary testing) - only if available
+  if (typeof window !== 'undefined' && window.sessionStorage) {
+    try {
+      const sessionKey = sessionStorage.getItem(`temp_${keyName.toLowerCase()}`);
+      if (sessionKey && sessionKey !== 'YOUR_API_KEY_HERE') {
+        return sessionKey;
+      }
+    } catch (error) {
+      console.warn('Could not access sessionStorage:', error);
+    }
   }
   
   // Finally use fallback
@@ -52,15 +58,43 @@ export const API_CONFIG = {
 
 // Function to set temporary API keys in session storage
 export const setTempApiKey = (keyName: string, value: string): void => {
-  sessionStorage.setItem(`temp_${keyName.toLowerCase()}`, value);
+  if (typeof window === 'undefined' || !window.sessionStorage) {
+    console.warn('SessionStorage not available');
+    return;
+  }
+
+  try {
+    sessionStorage.setItem(`temp_${keyName.toLowerCase()}`, value);
+  } catch (error) {
+    console.warn('Could not save to sessionStorage:', error);
+  }
 };
 
-// Function to get current API key values
-export const getCurrentApiKeys = () => ({
-  googleVision: API_CONFIG.googleVision.apiKey,
-  openai: API_CONFIG.llm.apiKey,
-  pexels: API_CONFIG.pexels.apiKey,
-});
+// Function to get current API key values (only session keys, not .env keys)
+export const getCurrentApiKeys = () => {
+  const keys: Record<string, string> = {};
+  
+  // Only get keys from session storage, not from .env
+  if (typeof window !== 'undefined' && window.sessionStorage) {
+    try {
+      keys.googleVision = sessionStorage.getItem('temp_google_vision_api_key') || '';
+      keys.openai = sessionStorage.getItem('temp_openai_api_key') || '';
+      keys.pexels = sessionStorage.getItem('temp_pexels_api_key') || '';
+    } catch (error) {
+      console.warn('Could not access sessionStorage:', error);
+    }
+  }
+  
+  return keys;
+};
+
+/**
+ * Check if a key is configured via .env
+ */
+export const isKeyFromEnv = (keyName: string): boolean => {
+  const envKey = import.meta.env[`VITE_${keyName}`];
+  return !!(envKey && envKey !== 'YOUR_API_KEY_HERE');
+};
 
 // LLM Prompts for structured menu processing
 export const LLM_PROMPTS = {

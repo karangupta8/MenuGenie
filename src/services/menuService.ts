@@ -56,7 +56,18 @@ export class MenuService {
         message: 'Analyzing menu structure...',
       });
 
-      const processedMenu = await this.llmService.processMenuData(extractedText, targetLanguage);
+      const processedMenu = await this.llmService.processMenuData(
+        extractedText, 
+        targetLanguage,
+        (llmProgress) => {
+          // Convert LLM progress to menu processing status
+          setProcessingStatus({
+            stage: 'parsing',
+            progress: Math.round(45 + (llmProgress.progress * 0.35)), // 45-80%
+            message: `LLM Processing: ${llmProgress.message}`,
+          });
+        }
+      );
 
       // Step 3: Flatten items from all sections
       const allItems = processedMenu.sections.flatMap(section => section.items);
@@ -77,31 +88,33 @@ export class MenuService {
       const updatedSections = processedMenu.sections.map(section => ({
         ...section,
         items: section.items.map(item => {
-          const processedItem = itemsWithImages.find(processed => processed.id === item.id);
-          return processedItem || item;
-        }).filter(item => filteredItems.some(filtered => filtered.id === item.id))
-      })).filter(section => section.items.length > 0);
+          const updatedItem = itemsWithImages.find(updated => updated.id === item.id);
+          return updatedItem || item;
+        })
+      }));
 
-      // Final completion
+      // Step 7: Complete processing
       setProcessingStatus({
         stage: 'complete',
         progress: 100,
         message: 'Menu processing complete!',
       });
+
       return {
         ...processedMenu,
         sections: updatedSections,
         ocrProvider: ocrResult.provider,
         ocrConfidence: ocrResult.confidence,
       };
+
     } catch (error) {
-      console.error('Error processing menu:', error);
+      console.error('Menu processing error:', error);
       setProcessingStatus({
         stage: 'error',
         progress: 0,
-        message: `Processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: `Error: ${error instanceof Error ? error.message : String(error)}`,
       });
-      throw new Error(`Failed to process menu: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw error;
     }
   }
 

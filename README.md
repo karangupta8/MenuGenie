@@ -1,3 +1,4 @@
+# MenuGenie - AI-Powered Menu Translation
 # MenuGenie - AI-Powered Menu Translation & Analysis
 
 MenuGenie is a comprehensive web application that transforms restaurant menu photos into intelligent, translated, and analyzed digital menus using advanced AI technologies.
@@ -150,3 +151,17 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Support
 
 For issues, questions, or contributions, please open an issue on the GitHub repository.
+### Error Handling
+- **Provider Validation**: Check API keys before processing
+- **Automatic Fallback**: Try next provider on failure
+- **User Feedback**: Clear error messages and suggestions
+
+## Development
+
+### Project Structure
+
+```
+src/
+├── components/          # React components
+├── config/             # Configuratio
+```
