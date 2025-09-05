@@ -347,7 +347,7 @@ Example client usage (auto-selects proxy during dev):
 
 ## 👤 Author
 
-- Add your name and links (GitHub, LinkedIn, website).
+- Karan Gupta
 
 ## 📜 License
 
