@@ -6,8 +6,20 @@ import { LlmConfig, LlmProvider, OpenAIConfig, GoogleConfig, GroqConfig, Anthrop
  */
 
 // Helper function to get configuration values with fallback hierarchy
-const getConfigValue = (envKey: string, sessionKey: string, fallback: string): string => {
-  // 1. Environment variables (highest priority)
+const getConfigValue = (envKey: string, sessionKey: string, fallback: string, prioritizeSession: boolean = false): string => {
+  // For provider selection, prioritize session storage over environment variables
+  if (prioritizeSession && typeof window !== 'undefined' && window.sessionStorage) {
+    try {
+      const sessionValue = sessionStorage.getItem(sessionKey);
+      if (sessionValue) {
+        return sessionValue;
+      }
+    } catch (error) {
+      console.warn('Could not access sessionStorage:', error);
+    }
+  }
+  
+  // 1. Environment variables (highest priority for API keys)
   const envValue = import.meta.env[envKey];
   if (envValue && envValue !== 'YOUR_API_KEY_HERE') {
     return envValue;
@@ -17,7 +29,8 @@ const getConfigValue = (envKey: string, sessionKey: string, fallback: string): s
   if (typeof window !== 'undefined' && window.sessionStorage) {
     try {
       const sessionValue = sessionStorage.getItem(sessionKey);
-      if (sessionValue && sessionValue !== 'YOUR_API_KEY_HERE') {
+      // For provider selection, we don't need to check for placeholder values
+      if (sessionValue) {
         return sessionValue;
       }
     } catch (error) {
@@ -40,7 +53,7 @@ export const getLlmConfig = (): LlmConfig & {
     anthropic: AnthropicConfig;
   };
 } => ({
-  provider: (getConfigValue('VITE_LLM_DEFAULT_PROVIDER', 'llm_default_provider', 'openai') as LlmProvider),
+  provider: (getConfigValue('VITE_LLM_DEFAULT_PROVIDER', 'llm_default_provider', 'openai', true) as LlmProvider),
   fallbackProviders: ['openai', 'google', 'groq', 'anthropic'] as LlmProvider[],
   timeout: 30000,
   retryAttempts: 2,
@@ -64,7 +77,7 @@ export const getLlmConfig = (): LlmConfig & {
     groq: {
       apiKey: getConfigValue('VITE_GROQ_API_KEY', 'temp_groq_api_key', 'YOUR_GROQ_API_KEY_HERE'),
       endpoint: 'https://api.groq.com/openai/v1/chat/completions',
-      model: 'llama-3.1-70b-versatile',
+      model: 'llama-3.3-70b-versatile',
       maxTokens: 8000,
       temperature: 0.1,
     },
@@ -223,7 +236,7 @@ export const getLlmProviderInfo = (provider: LlmProvider) => {
       description: 'Ultra-fast inference, cost-effective',
       icon: '⚡',
       color: 'bg-purple-100 text-purple-800',
-      models: ['llama-3.1-70b-versatile', 'llama-3.1-8b-instant'],
+      models: ['llama-3.3-70b-versatile', 'llama-3.3-8b-instant'],
     },
     anthropic: {
       name: 'Anthropic Claude',

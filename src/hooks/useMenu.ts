@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { ProcessedMenu, ProcessingStatus, UserSettings } from '../types/menu';
 import { OcrProvider, OcrProgress } from '../types/ocr';
 import { MenuService } from '../services/menuService';
@@ -6,7 +6,7 @@ import { getOcrConfig } from '../config/ocrConfig';
 
 const defaultSettings: UserSettings = {
   targetLanguage: 'en',
-  nativeCurrency: 'USD',
+  nativeCurrency: 'INR',
   showOriginalText: true,
   showAllergenHighlights: true,
   showNutritionInfo: true,
@@ -28,7 +28,13 @@ export const useMenu = () => {
     return config.provider;
   });
 
-  const menuService = new MenuService();
+  // Function to refresh OCR provider from configuration
+  const refreshOcrProvider = useCallback(() => {
+    const config = getOcrConfig();
+    setSelectedOcrProvider(config.provider);
+  }, []);
+
+  const menuService = useMemo(() => new MenuService(), []);
 
   const processFile = useCallback(async (file: File) => {
     // Store uploaded image for display
@@ -78,7 +84,7 @@ export const useMenu = () => {
 
   const exportHtml = useCallback(() => {
     if (menu) {
-      const htmlData = menuService.exportToHtml(menu);
+      const htmlData = menuService.exportToHtml(menu, settings);
       const blob = new Blob([htmlData], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -89,7 +95,7 @@ export const useMenu = () => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }
-  }, [menu, menuService]);
+  }, [menu, menuService, settings]);
 
   const resetMenu = useCallback(() => {
     setMenu(null);
@@ -114,5 +120,6 @@ export const useMenu = () => {
     resetMenu,
     selectedOcrProvider,
     setSelectedOcrProvider,
+    refreshOcrProvider,
   };
 };

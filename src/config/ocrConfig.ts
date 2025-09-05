@@ -6,9 +6,22 @@ import { OcrConfig, OcrProvider } from '../types/ocr';
  */
 
 // Helper function to get configuration values with fallback hierarchy
-const getConfigValue = (envKey: string, sessionKey: string, fallback: string): string => {
-  // 1. Environment variables (highest priority)
+const getConfigValue = (envKey: string, sessionKey: string, fallback: string, prioritizeSession: boolean = false): string => {
+  // For provider selection, prioritize session storage over environment variables
+  if (prioritizeSession && typeof window !== 'undefined' && window.sessionStorage) {
+    try {
+      const sessionValue = sessionStorage.getItem(sessionKey);
+      if (sessionValue) {
+        return sessionValue;
+      }
+    } catch (error) {
+      console.warn('Could not access sessionStorage:', error);
+    }
+  }
+  
+  // 1. Environment variables (highest priority for API keys)
   const envValue = import.meta.env[envKey];
+  
   if (envValue && envValue !== 'YOUR_API_KEY_HERE') {
     return envValue;
   }
@@ -17,7 +30,9 @@ const getConfigValue = (envKey: string, sessionKey: string, fallback: string): s
   if (typeof window !== 'undefined' && window.sessionStorage) {
     try {
       const sessionValue = sessionStorage.getItem(sessionKey);
-      if (sessionValue && sessionValue !== 'YOUR_API_KEY_HERE') {
+      
+      // For provider selection, we don't need to check for placeholder values
+      if (sessionValue) {
         return sessionValue;
       }
     } catch (error) {
@@ -38,31 +53,35 @@ export const getOcrConfig = (): OcrConfig & {
     googleVision: { apiKey: string; endpoint: string };
     ocrSpace: { apiKey: string; endpoint: string };
   };
-} => ({
-  provider: (getConfigValue('VITE_OCR_DEFAULT_PROVIDER', 'ocr_default_provider', 'tesseract') as OcrProvider),
-  fallbackProviders: ['google-vision', 'ocr-space', 'tesseract'] as OcrProvider[],
-  timeout: 30000,
-  retryAttempts: 2,
-  imagePreprocessing: {
-    enabled: true,
-    maxWidth: 2048,
-    maxHeight: 2048,
-    quality: 0.9,
-  },
-  providers: {
-    tesseract: {
-      enabled: true, // Always enabled (no API key required)
+} => {
+  const provider = getConfigValue('VITE_OCR_DEFAULT_PROVIDER', 'ocr_default_provider', 'tesseract', true) as OcrProvider;
+  
+  return {
+    provider,
+    fallbackProviders: ['google-vision', 'ocr-space', 'tesseract'] as OcrProvider[],
+    timeout: 30000,
+    retryAttempts: 2,
+    imagePreprocessing: {
+      enabled: true,
+      maxWidth: 2048,
+      maxHeight: 2048,
+      quality: 0.9,
     },
-    googleVision: {
-      apiKey: getConfigValue('VITE_GOOGLE_VISION_API_KEY', 'temp_google_vision_api_key', 'YOUR_GOOGLE_VISION_API_KEY_HERE'),
-      endpoint: 'https://vision.googleapis.com/v1/images:annotate',
+    providers: {
+      tesseract: {
+        enabled: true, // Always enabled (no API key required)
+      },
+      googleVision: {
+        apiKey: getConfigValue('VITE_GOOGLE_VISION_API_KEY', 'temp_google_vision_api_key', 'YOUR_GOOGLE_VISION_API_KEY_HERE'),
+        endpoint: 'https://vision.googleapis.com/v1/images:annotate',
+      },
+      ocrSpace: {
+        apiKey: getConfigValue('VITE_OCR_SPACE_API_KEY', 'temp_ocr_space_api_key', 'YOUR_OCR_SPACE_API_KEY_HERE'),
+        endpoint: 'https://api.ocr.space/parse/image',
+      },
     },
-    ocrSpace: {
-      apiKey: getConfigValue('VITE_OCR_SPACE_API_KEY', 'temp_ocr_space_api_key', 'YOUR_OCR_SPACE_API_KEY_HERE'),
-      endpoint: 'https://api.ocr.space/parse/image',
-    },
-  },
-});
+  };
+};
 
 /**
  * Set temporary OCR configuration in session storage

@@ -7,7 +7,7 @@ export class GroqProvider extends BaseLlmProvider {
   capabilities: LlmProviderCapabilities = {
     name: 'Groq (Llama)',
     requiresApiKey: true,
-    supportedModels: ['llama-3.1-70b-versatile', 'llama-3.1-8b-instant'],
+    supportedModels: ['llama-3.3-70b-versatile', 'llama-3.3-8b-instant'],
     maxTokens: 8000,
     averageProcessingTime: 1000,
     accuracy: 'high',

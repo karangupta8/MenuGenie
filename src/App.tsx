@@ -28,6 +28,7 @@ function App() {
     exportJson,
     exportHtml,
     resetMenu,
+    refreshOcrProvider,
   } = useMenu();
 
   const [showApiWarning, setShowApiWarning] = useState(false);
@@ -165,6 +166,7 @@ function App() {
               onKeysUpdated={() => {
                 setShowApiWarning(false);
                 setShowApiManager(false);
+                refreshOcrProvider(); // Refresh OCR provider selection
               }} 
               defaultExpanded={showApiWarning}
             />
