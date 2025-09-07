@@ -45,7 +45,7 @@ Turn any restaurant menu photo into a structured, translated, and visually rich 
 - [🐛 Known Issues](#-known-issues)
 - [📊 Performance / Optimization (Optional)](#-performance--optimization-optional)
 - [💡 Lovable Prompt](#-lovable-prompt)
-- **🙏 Acknowledgments**
+- [🙏 Acknowledgments](#-acknowledgments)
 - [👤 Author](#-author)
 - [📜 License](#-license)
 
